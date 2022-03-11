@@ -2,6 +2,8 @@ const express = require('express');
 
 // Require the model
 const User = require('../models/user');
+// Require passport
+const passport = require('passport');
 
 const router = express.Router();
 
@@ -11,72 +13,31 @@ router.get('/', function (req, res, next) {
 });
 
 // Add router - post method: this endpoint will allow users to register on website
-router.post('/signup', (req, res, next) => {
-  // .findOne method finds and returns one document that matches the given selection criteria / checks that a username isn't already taken
-  User.findOne({ username: req.body.username })
-    .then(user => {
-      if (user) {
-        const err = new Error(`User ${req.body.username} already exists!`);
-        err.status = 403;
-        return next(err);
+router.post('/signup', (req, res) => {
+  User.register(
+    new User({ username: req.body.username }),
+    req.body.password,
+    err => {  //check if there is an error
+      if (err) {
+        res.statusCode = 500;  // lets the client know that there is an internal server error while trying to register
+        res.setHeader('Content-Type', 'application/json'); //let the client know to expect a json response
+        res.json({ err: err }); //provide information about the error
       } else {
-        User.create({
-          username: req.body.username,
-          password: req.body.password
-        })
-          .then(user => {
-            res.statusCode = 200;
-            res.setHeader('Content-Type', 'application/json');
-            res.json({ status: 'Registration Successful!', user: user });
-          })
-          .catch(err => next(err));
+        passport.authenticate('local')(req, res, () => {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.json({ success: true, status: 'Registration Successful!' });
+        });
       }
-    })
-    .catch(err => next(err));
+    }
+  );
 });
 
-// post method: check if a user is already logged in
-router.post('/login', (req, res, next) => {
-  if (!req.session.user) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      const err = new Error('You are not authenticated!');
-      res.setHeader('WWW-Authenticate', 'Basic');
-      err.status = 401;
-      return next(err);
-    }
-
-    const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-    const username = auth[0];
-    const password = auth[1];
-
-    // check against the user document to authenticate login, first check the username
-    User.findOne({ username: username })
-      .then(user => {
-        if (!user) {
-          const err = new Error(`User ${username} does not exist!`);
-          err.status = 401;
-          return next(err);
-          // if you find a matching username you can then check if the username and password match
-        } else if (user.password !== password) {
-          const err = new Error('Your password is incorrect!');
-          err.status = 401;
-          return next(err);
-          // start tracking the user session
-        } else if (user.username === username && user.password === password) {
-          req.session.user = 'authenticated';
-          res.statusCode = 200;
-          res.setHeader('Content-Type', 'text/plain');
-          res.end('You are authenticated!')
-        }
-      })
-      // add catch block for an errors that might occur
-      .catch(err => next(err));
-  } else {
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/plain');
-    res.end('You are already authenticated!');
-  }
+// post method: check if a user is already logged in and successful
+router.post('/login', passport.authenticate('local'), (req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'application/json');
+  res.json({ success: true, status: 'You are successfully logged in!' });
 });
 
 // final endpoint: 

@@ -7,6 +7,10 @@ var logger = require('morgan');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 
+// Require passport
+const passport = require('passport');
+const authenticate = require('./authenticate');
+
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
@@ -50,25 +54,23 @@ app.use(session({
   store: new FileStore() // create a new filestore as an object used to save our session info to the servers hard disk instead of just in the running application memory
 }));
 
+// Only necessary if using session based authentication, these are two middleware functions provided by passport to check incoming requests to see if there is an existing session for that client and if so the data is loaded
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
 // Authentication function
 function auth(req, res, next) {
-  console.log(req.session);
+  console.log(req.user);
 
-  if (!req.session.user) {
+  if (!req.user) {
     const err = new Error('You are not authenticated!');
     err.status = 401;
     return next(err);
   } else {
-    if (req.session.user === 'authenticated') {
-      return next();
-    } else {
-      const err = new Error('You are not authenticated!');
-      err.status = 401;
-      return next(err);
-    }
+    return next();
   }
 }
 
