@@ -1,11 +1,11 @@
 // router handles get put post and delete endpoints for any path that begins with /campsite
 const express = require('express');
 const Partner = require('../models/partner');
+const authenticate = require('../authenticate');
 const partnerRouter = express.Router();
 
 partnerRouter
   .route('/')
-  // next routing method set up an endpoint for a get request to the path '/partners'
   .get((req, res, next) => {
     Partner.find()
       .then((partners) => {
@@ -15,8 +15,7 @@ partnerRouter
       })
       .catch((err) => next(err));
   })
-  //post request not supported on this path, not accepting any requests to this endpoint - but send message back
-  .post((req, res, next) => {
+  .post(authenticate.verifyUser,(req, res, next) => {
     Partner.create(req.body)
       .then((partner) => {
         console.log('Partner Created', partner);
@@ -26,11 +25,11 @@ partnerRouter
       })
       .catch((err) => next(err));
   })
-  .put((req, res) => {
+  .put(authenticate.verifyUser,(req, res) => {
     res.statusCode = 403;
     res.end('PUT operation not supported on /partners');
   })
-  .delete((req, res, next) => {
+  .delete(authenticate.verifyUser,(req, res, next) => {
     Partner.deleteMany()
       .then((response) => {
         res.statusCode = 200;
@@ -39,9 +38,6 @@ partnerRouter
       })
       .catch((err) => next(err));
   });
-
-// Add a new partnerRouter.route() method, and as its argument, give it the path (route parameter) of '/:partnerId'
-// 4 more endpoints that support a different path, route parameter added :partnerId
 
 partnerRouter
   .route('/:partnerId')
@@ -54,14 +50,14 @@ partnerRouter
       })
       .catch((err) => next(err));
   })
-  .post((req, res) => {
+  .post(authenticate.verifyUser,(req, res) => {
     res.statusCode = 403;
     res.end(
       `POST operation not supported on /partners/${req.params.partnerId}`
     );
   })
 
-  .put((req, res, next) => {
+  .put(authenticate.verifyUser,(req, res, next) => {
     Partner.findByIdAndUpdate(
       req.params.partnerId,
       {
@@ -77,7 +73,7 @@ partnerRouter
       .catch((err) => next(err));
   })
 
-  .delete((req, res, next) => {
+  .delete(authenticate.verifyUser,(req, res, next) => {
     Partner.findByIdAndDelete(req.params.partnerId)
       .then((response) => {
         res.statusCode = 200;
