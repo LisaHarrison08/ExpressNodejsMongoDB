@@ -18,6 +18,7 @@ const userSchema = new Schema({
         type: String,
         default: ''
     },
+    facebookId: String,
     admin: {
         type: Boolean,
         default: false
@@ -27,5 +28,5 @@ const userSchema = new Schema({
 userSchema.plugin(passportLocalMongoose);
 
 
-// Export the model (1st argument is the name "User" and the colloection will automatically be named "users" lowercase, 2nd argument, is the schema to use which is "userSchema")
+// Export the model (1st argument is the name "User" and the collection will automatically be named "users" lowercase, 2nd argument, is the schema to use which is "userSchema")
 module.exports = mongoose.model('User', userSchema);
