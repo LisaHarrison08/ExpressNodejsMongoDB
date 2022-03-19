@@ -1,21 +1,24 @@
 const express = require('express');
-
-// Require the model
 const User = require('../models/user');
-// Require passport
 const passport = require('passport');
-
 const authenticate = require('../authenticate');
+const cors = require('./cors');
 
 const router = express.Router();
 
 /* GET users listing. */
-router.get('/', function (req, res, next) {
-  res.send('respond with a resource');
+router.get('/', cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+  User.find()
+    .then(users => {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.json(users);
+    })
+    .catch((err) => next(err));
 });
 
 // Add router - post method: this endpoint will allow users to register on website
-router.post('/signup', (req, res) => {
+router.post('/signup', cors.corsWithOptions, (req, res) => {
   User.register(
     new User({ username: req.body.username }),
     req.body.password,
@@ -29,7 +32,7 @@ router.post('/signup', (req, res) => {
         if (req.body.firstname) {
           user.firstname = req.body.firstname;
         }
-         // check if lastname has been set in the request body
+        // check if lastname has been set in the request body
         if (req.body.lastname) {
           user.lastname = req.body.lastname;
         }
@@ -52,7 +55,7 @@ router.post('/signup', (req, res) => {
 });
 
 // post method: check if a user is already logged in and successful
-router.post('/login', passport.authenticate('local'), (req, res) => {
+router.post('/login', cors.corsWithOptions, passport.authenticate('local'), (req, res) => {
   const token = authenticate.getToken({ _id: req.user._id });
   res.statusCode = 200;
   res.setHeader('Content-Type', 'application/json');
@@ -60,7 +63,7 @@ router.post('/login', passport.authenticate('local'), (req, res) => {
 });
 
 // final endpoint: 
-router.get('/logout', (req, res, next) => {
+router.get('/logout', cors.corsWithOptions, (req, res, next) => {
   // check if a session exists
   if (req.session) {
     // .destroy - deleting the sesion file on the server side and if a client tries to authenticate using that sessions id it will be recognised by the server as a valid session
@@ -72,7 +75,7 @@ router.get('/logout', (req, res, next) => {
     // else block to handle if a client tries to logout if they're not logged in
   } else {
     const err = new Error('You are not logged in!');
-    err.status = 401;
+    err.status = 403;
     return next(err);
   }
 });
